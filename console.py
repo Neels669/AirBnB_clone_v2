@@ -1,15 +1,17 @@
 #!/usr/bin/python3
 """ Console Module """
 import cmd
+from models import storage
+from datetime import datetime
 import sys
 from models.base_model import BaseModel
-from models.__init__ import storage
 from models.user import User
 from models.place import Place
 from models.state import State
 from models.city import City
 from models.amenity import Amenity
 from models.review import Review
+
 
 
 class HBNBCommand(cmd.Cmd):
@@ -113,49 +115,40 @@ class HBNBCommand(cmd.Cmd):
         """ Overrides the emptyline method of CMD """
         pass
 
-    def do_create(self, arg):
-        """Create an object of any class with given parameters"""
-        if not arg:
+    def do_create(self, line):
+        """Creates a new instance of BaseModel, saves it
+        Exceptions:
+            SyntaxError: when there is no args given
+            NameError: when there is no object taht has the name
+        """
+        try:
+            if not line:
+                raise SyntaxError()
+            my_list = line.split(" ")
+            obj = eval("{}()".format(my_list[0]))
+            for i in my_list:
+                if i != my_list[0]:
+                    try:
+                        check = i.split("=")
+                        if (type(eval(check[1])) is str):
+                            check[1] = str(check[1])
+                            check[1] = check[1][1:]
+                            check[1] = check[1][:-1]
+                            check[1] = check[1].replace("_", " ")
+                            check[1] = check[1].replace('"', '\\"')
+                        elif (type(eval(check[1])) is float):
+                            check[1] = float(check[1])
+                        elif (type(eval(check[1])) is int):
+                            check[1] = int(check[1])
+                        setattr(obj, check[0], check[1])
+                    except Exception:
+                        pass
+            obj.save()
+            print("{}".format(obj.id))
+        except SyntaxError:
             print("** class name missing **")
-            return
-
-        arg_parts = arg.split()
-        class_name = arg_parts[0]
-
-        if class_name not in HBNBCommand.classes:
+        except NameError:
             print("** class doesn't exist **")
-            return
-
-        params = {}
-        for param in arg_parts[1:]:
-            if "=" not in param:
-                print(f"Invalid parameter: {param}")
-                return
-
-            key, value = param.split("=")
-            key = key.replace('_', ' ')
-
-            if value.startswith('"') and value.endswith('"'):
-                value = value[1:-1].replace('\\"', '"')
-            elif '.' in value:
-                try:
-                    value = float(value)
-                except ValueError:
-                    print(f"Invalid float value: {value}")
-                    return
-            else:
-                try:
-                    value = int(value)
-                except ValueError:
-                    print(f"Invalid integer value: {value}")
-                    return
-
-            params[key] = value
-
-        new_instance = HBNBCommand.classes[class_name](**params)
-        storage.save()
-        print(new_instance.id)
-        storage.save()
 
     def help_create(self):
         """ Help information for the create method """
