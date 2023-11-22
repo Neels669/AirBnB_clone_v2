@@ -13,7 +13,6 @@ from models.amenity import Amenity
 from models.review import Review
 
 
-
 class HBNBCommand(cmd.Cmd):
     """ Contains the functionality for the HBNB console"""
 
@@ -122,33 +121,36 @@ class HBNBCommand(cmd.Cmd):
             NameError: when there is no object taht has the name
         """
         try:
-            if not line:
-                raise SyntaxError()
-            my_list = line.split(" ")
-            obj = eval("{}()".format(my_list[0]))
-            for i in my_list:
-                if i != my_list[0]:
-                    try:
-                        check = i.split("=")
-                        if (type(eval(check[1])) is str):
-                            check[1] = str(check[1])
-                            check[1] = check[1][1:]
-                            check[1] = check[1][:-1]
-                            check[1] = check[1].replace("_", " ")
-                            check[1] = check[1].replace('"', '\\"')
-                        elif (type(eval(check[1])) is float):
-                            check[1] = float(check[1])
-                        elif (type(eval(check[1])) is int):
-                            check[1] = int(check[1])
-                        setattr(obj, check[0], check[1])
-                    except Exception:
-                        pass
-            obj.save()
-            print("{}".format(obj.id))
-        except SyntaxError:
+            c_name = line.split(" ")[0]
+        except IndexError:
+            pass
+        if not c_name:
             print("** class name missing **")
-        except NameError:
+            return
+        elif c_name not in HBNBCommand.classes:
             print("** class doesn't exist **")
+            return
+
+        all_list = line.split(" ")
+
+        new_instance = eval(c_name)()
+
+        for i in range(1, len(all_list)):
+            key, value = tuple(all_list[i].split("="))
+            if value.startswith('"'):
+                value = value.strip('"').replace("_", " ")
+            else:
+                try:
+                    value = eval(value)
+                except Exception:
+                    print(f"** couldn't evaluate {value}")
+                    pass
+            if hasattr(new_instance, key):
+                setattr(new_instance, key, value)
+
+        storage.new(new_instance)
+        print(new_instance.id)
+        new_instance.save()
 
     def help_create(self):
         """ Help information for the create method """
@@ -296,7 +298,7 @@ class HBNBCommand(cmd.Cmd):
                 args.append(v)
         else:  # isolate args
             args = args[2]
-            if args and args[0] =='\"':  # check for quoted arg
+            if args and args[0] == '\"':  # check for quoted arg
                 second_quote = args.find('\"', 1)
                 att_name = args[1:second_quote]
                 args = args[second_quote + 1:]
